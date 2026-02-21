@@ -53,11 +53,7 @@ func (g *Generator) Generate(ctx context.Context, summaries []llm.RepoSummary) e
 
 	slog.Debug("브리핑 리포트 생성 중", "count", len(summaries))
 
-	if r, err := glamour.NewTermRenderer(glamour.WithStylePath("dark"), glamour.WithWordWrap(0)); err == nil {
-		if out, err := r.Render(fmt.Sprintf("---\n\n`%d`개 저장소를 바탕으로 **브리핑 리포트**를 생성하는 중...\n", len(summaries))); err == nil {
-			fmt.Fprint(os.Stderr, out)
-		}
-	}
+	fmt.Fprintf(os.Stderr, "\033[1m%d\033[0m개 저장소를 바탕으로 브리핑 리포트를 생성하는 중...\n", len(summaries))
 	fmt.Fprintln(g.output)
 
 	content, err := g.provider.Report(ctx, summaries)

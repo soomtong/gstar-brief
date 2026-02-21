@@ -7,46 +7,32 @@ import (
 	"os"
 	"sync"
 
-	"github.com/charmbracelet/glamour"
 	"github.com/dp/gstar-brief/internal/github"
 	"github.com/dp/gstar-brief/internal/llm"
 )
 
 const workerCount = 3 // GitHub Rate Limit 고려한 동시 요청 수
 
-// statusPrinter는 glamour 렌더러와 출력 mutex를 보유합니다.
+// ANSI 스타일 상수
+const (
+	ansiReset  = "\033[0m"
+	ansiBold   = "\033[1m"
+	ansiDim    = "\033[2m"
+	ansiCyan   = "\033[36m"
+	ansiGreen  = "\033[32m"
+	ansiYellow = "\033[33m"
+)
+
+// statusPrinter는 진행 상태를 mutex로 보호하여 출력합니다.
 type statusPrinter struct {
-	mu       sync.Mutex
-	renderer *glamour.TermRenderer
+	mu sync.Mutex
 }
 
-// newStatusPrinter는 터미널 쿼리 없이 고정 스타일로 렌더러를 생성합니다.
-func newStatusPrinter() *statusPrinter {
-	r, err := glamour.NewTermRenderer(
-		glamour.WithStylePath("dark"),
-		glamour.WithWordWrap(0),
-	)
-	if err != nil {
-		return &statusPrinter{}
-	}
-	return &statusPrinter{renderer: r}
-}
-
-// print는 마크다운을 렌더링하여 stderr에 출력합니다 (goroutine-safe).
-func (p *statusPrinter) print(md string) {
+// print는 메시지를 stderr에 출력합니다 (goroutine-safe).
+func (p *statusPrinter) print(msg string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
-	if p.renderer == nil {
-		fmt.Fprintln(os.Stderr, md)
-		return
-	}
-	out, err := p.renderer.Render(md)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, md)
-		return
-	}
-	fmt.Fprint(os.Stderr, out)
+	fmt.Fprintln(os.Stderr, msg)
 }
 
 // Analyzer는 GitHub 저장소를 수집하고 LLM으로 분석합니다.
@@ -67,10 +53,10 @@ func New(gh *github.Client, provider llm.Provider) *Analyzer {
 // offset: 건너뛸 아이템 수 (최신 순 기준)
 // limit:  수집할 최대 아이템 수 (0이면 무제한)
 func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) ([]llm.RepoSummary, error) {
-	sp := newStatusPrinter()
+	sp := &statusPrinter{}
 
 	slog.Debug("GitHub 스타 저장소 수집 중", "user", username)
-	sp.print(fmt.Sprintf("**@%s** 의 스타 저장소를 수집하는 중...", username))
+	sp.print(fmt.Sprintf("%s%s@%s%s 의 스타 저장소를 수집하는 중...", ansiBold, ansiCyan, username, ansiReset))
 
 	repos, err := a.github.ListStarred(ctx, username, offset, limit)
 	if err != nil {
@@ -78,7 +64,7 @@ func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) 
 	}
 
 	slog.Debug("저장소 분석 시작", "count", len(repos))
-	sp.print(fmt.Sprintf("`%d`개 저장소 분석을 시작합니다.", len(repos)))
+	sp.print(fmt.Sprintf("%s%d%s개 저장소 분석을 시작합니다.", ansiBold, len(repos), ansiReset))
 
 	type result struct {
 		idx     int
@@ -118,7 +104,10 @@ func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) 
 				}
 
 				slog.Debug("저장소 분석 완료", "repo", repo.FullName, "idx", idx+1, "total", len(repos))
-				sp.print(fmt.Sprintf("**[%d/%d]** `%s` 분석 완료", idx+1, len(repos), repo.FullName))
+				sp.print(fmt.Sprintf("%s[%d/%d]%s %s%s%s 분석 완료",
+					ansiDim, idx+1, len(repos), ansiReset,
+					ansiGreen, repo.FullName, ansiReset,
+				))
 
 				results <- result{
 					idx: idx,
@@ -151,7 +140,7 @@ func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) 
 	for r := range results {
 		if r.err != nil {
 			slog.Warn("저장소 분석 실패", "error", r.err)
-			sp.print(fmt.Sprintf("> **경고:** %s", r.err))
+			sp.print(fmt.Sprintf("%s경고:%s %s", ansiYellow, ansiReset, r.err))
 			continue
 		}
 		summaries[r.idx] = r.summary
