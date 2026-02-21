@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/dp/gstar-brief/internal/config"
@@ -10,6 +11,7 @@ import (
 )
 
 var cfgFile string
+var verbose bool
 
 var rootCmd = &cobra.Command{
 	Use:   "gstar-brief",
@@ -35,6 +37,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("output", "o", "", "출력 파일 경로 (기본: stdout)")
 	rootCmd.PersistentFlags().IntP("limit", "n", 0, "처리할 저장소 최대 수 (기본: 전체)")
 	rootCmd.PersistentFlags().Int("offset", 0, "건너뛸 저장소 수 (기본: 0, 최신 순 기준)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "LLM API 호출 상세 로그 출력")
 
 	// 플래그 → viper 바인딩 (플래그가 최우선)
 	viper.BindPFlag("limit", rootCmd.PersistentFlags().Lookup("limit"))
@@ -43,6 +46,15 @@ func init() {
 }
 
 func initConfig() {
+	// verbose 플래그에 따라 slog 레벨 설정
+	logLevel := slog.LevelInfo
+	if verbose {
+		logLevel = slog.LevelDebug
+	}
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: logLevel,
+	})))
+
 	config.Init(cfgFile)
 
 	// 설정 파일 경로 출력 (디버그용)

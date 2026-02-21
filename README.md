@@ -2,14 +2,6 @@
 
 GitHub에서 스타 마킹한 저장소를 수집하고 LLM으로 종합 브리핑 리포트를 생성하는 CLI 도구입니다.
 
-## 주요 기능
-
-- **언어별 통계** - 스타 저장소를 프로그래밍 언어별로 집계
-- **스타 카운트 정렬** - 스타 수 기준으로 저장소 목록 정렬
-- **시간순 정렬** - 스타 마킹한 시간 기준으로 저장소 목록 정렬
-- **LLM 브리핑 리포트** - 각 저장소의 README와 주요 코드를 LLM이 분석하여 종합 리포트 생성
-- **다양한 LLM Provider 지원** - Claude, OpenAI, Gemini, OpenRouter, Ollama
-
 ## 설치
 
 ```bash
@@ -50,6 +42,35 @@ gstar-brief list --sort stars --limit 20
 ```bash
 gstar-brief report
 ```
+
+### LLM API 호출 로그 확인
+
+`--verbose` / `-v` 플래그를 사용하면 LLM API 요청/응답 상세 로그를 stderr로 출력합니다.
+
+```bash
+gstar-brief report --verbose
+gstar-brief report -v
+```
+
+출력 예시:
+
+```
+time=2026-02-21T12:00:00 level=DEBUG msg="LLM API 요청" provider=claude model=claude-haiku-4-5 action=analyze target=owner/repo prompt_len=1240
+time=2026-02-21T12:00:01 level=DEBUG msg="LLM API 응답" provider=claude model=claude-haiku-4-5 action=analyze target=owner/repo duration_ms=1230 input_tokens=450 output_tokens=180
+```
+
+로그 필드:
+
+| 필드 | 설명 |
+|---|---|
+| `provider` | LLM provider 이름 (`claude`, `openai`, `gemini` 등) |
+| `model` | 사용 중인 모델명 |
+| `action` | `analyze` (저장소 분석) 또는 `report` (종합 리포트) |
+| `target` | 분석 대상 저장소 (`owner/repo`), report 시 빈 값 |
+| `prompt_len` | 프롬프트 바이트 수 |
+| `duration_ms` | API 응답 소요 시간 (밀리초) |
+| `input_tokens` | 입력 토큰 수 |
+| `output_tokens` | 출력 토큰 수 |
 
 ### 대용량 스타 분할 처리
 
