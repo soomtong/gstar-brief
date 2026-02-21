@@ -135,14 +135,23 @@ func (c *Client) starredPages(ctx context.Context, username string) iter.Seq2[st
 	}
 }
 
-// ListStarred는 유저의 스타 저장소 전체 목록을 반환합니다.
-func (c *Client) ListStarred(ctx context.Context, username string, limit int) ([]Repo, error) {
+// ListStarred는 유저의 스타 저장소 목록을 반환합니다.
+// offset: 건너뛸 아이템 수 (최신 순 기준, 0이면 처음부터)
+// limit:  수집할 최대 아이템 수 (0이면 무제한)
+func (c *Client) ListStarred(ctx context.Context, username string, offset, limit int) ([]Repo, error) {
 	var repos []Repo
+	var skipped int
 
 	for item, err := range c.starredPages(ctx, username) {
 		if err != nil {
 			return nil, err
 		}
+
+		if skipped < offset {
+			skipped++
+			continue
+		}
+
 		r := item.Repo
 		r.StarredAt = item.StarredAt
 		repos = append(repos, r)

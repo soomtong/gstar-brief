@@ -51,6 +51,30 @@ gstar-brief list --sort stars --limit 20
 gstar-brief report
 ```
 
+### 대용량 스타 분할 처리
+
+스타 수가 많아 GitHub API Rate Limit에 걸리는 경우 `--offset`과 `--limit`을 조합하여 구간별로 처리합니다.
+GitHub API는 최신 순(스타 마킹 날짜 내림차순)으로 반환하므로 offset은 최신 별 기준으로 건너뜁니다.
+
+```bash
+# 1~500번째 (가장 최근에 스타한 저장소)
+gstar-brief report --offset 0   --limit 500 --output report_1.md
+
+# 501~1000번째
+gstar-brief report --offset 500 --limit 500 --output report_2.md
+
+# 1001~1500번째
+gstar-brief report --offset 1000 --limit 500 --output report_3.md
+```
+
+통계도 동일하게 분할 처리할 수 있습니다.
+
+```bash
+gstar-brief stats --offset 0    --limit 500
+gstar-brief stats --offset 500  --limit 500
+gstar-brief stats --offset 1000 --limit 500
+```
+
 ## 설정
 
 설정 우선순위: **CLI 플래그 > `GSTAR_*` 환경변수 > 레거시 환경변수 > 설정 파일 > 기본값**

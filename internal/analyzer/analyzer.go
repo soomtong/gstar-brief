@@ -27,10 +27,12 @@ func New(gh *github.Client, provider llm.Provider) *Analyzer {
 }
 
 // Run은 username의 스타 저장소를 수집하고 분석하여 요약 목록을 반환합니다.
-func (a *Analyzer) Run(ctx context.Context, username string, limit int) ([]llm.RepoSummary, error) {
+// offset: 건너뛸 아이템 수 (최신 순 기준)
+// limit:  수집할 최대 아이템 수 (0이면 무제한)
+func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) ([]llm.RepoSummary, error) {
 	slog.Info("GitHub 스타 저장소 수집 중", "user", username)
 
-	repos, err := a.github.ListStarred(ctx, username, limit)
+	repos, err := a.github.ListStarred(ctx, username, offset, limit)
 	if err != nil {
 		return nil, fmt.Errorf("스타 저장소 수집 실패: %w", err)
 	}

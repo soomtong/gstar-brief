@@ -34,9 +34,11 @@ func init() {
 		fmt.Sprintf("설정 파일 경로 (기본: %s)", config.DefaultPath()))
 	rootCmd.PersistentFlags().StringP("output", "o", "", "출력 파일 경로 (기본: stdout)")
 	rootCmd.PersistentFlags().IntP("limit", "n", 0, "처리할 저장소 최대 수 (기본: 전체)")
+	rootCmd.PersistentFlags().Int("offset", 0, "건너뛸 저장소 수 (기본: 0, 최신 순 기준)")
 
 	// 플래그 → viper 바인딩 (플래그가 최우선)
 	viper.BindPFlag("limit", rootCmd.PersistentFlags().Lookup("limit"))
+	viper.BindPFlag("offset", rootCmd.PersistentFlags().Lookup("offset"))
 	viper.BindPFlag("output", rootCmd.PersistentFlags().Lookup("output"))
 }
 

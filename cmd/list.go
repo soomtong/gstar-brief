@@ -29,12 +29,13 @@ func runList(cmd *cobra.Command, _ []string) error {
 	}
 
 	sortBy, _ := cmd.Flags().GetString("sort")
+	offset := viper.GetInt("offset")
 	limit := viper.GetInt("limit")
 
 	client := github.New(viper.GetString("github.token"))
 	ctx := context.Background()
 
-	repos, err := client.ListStarred(ctx, username, limit)
+	repos, err := client.ListStarred(ctx, username, offset, limit)
 	if err != nil {
 		return err
 	}

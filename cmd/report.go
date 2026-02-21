@@ -30,6 +30,7 @@ func runReport(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("GitHub 유저명이 설정되지 않았습니다\n설정 방법:\n  환경변수: GSTAR_GITHUB_USER=username\n  설정 파일: gstar-brief init 후 [github] user 항목 편집")
 	}
 
+	offset := viper.GetInt("offset")
 	limit := viper.GetInt("limit")
 	outputPath := viper.GetString("output")
 
@@ -45,7 +46,7 @@ func runReport(cmd *cobra.Command, _ []string) error {
 
 	// 저장소 분석
 	a := analyzer.New(ghClient, provider)
-	summaries, err := a.Run(ctx, username, limit)
+	summaries, err := a.Run(ctx, username, offset, limit)
 	if err != nil {
 		return err
 	}
