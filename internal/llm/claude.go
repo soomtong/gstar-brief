@@ -17,11 +17,10 @@ type claudeProvider struct {
 }
 
 func newClaude() (Provider, error) {
-	apiKey := os.Getenv("ANTHROPIC_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다")
+	if err := requireEnvVars("ANTHROPIC_API_KEY"); err != nil {
+		return nil, err
 	}
-	client := anthropic.NewClient(option.WithAPIKey(apiKey))
+	client := anthropic.NewClient(option.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")))
 	return &claudeProvider{
 		client: &client,
 		model:  modelOrDefault(defaultClaudeModel),

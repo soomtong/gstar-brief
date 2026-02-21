@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/dp/gstar-brief/internal/llm"
@@ -35,7 +36,8 @@ func (g *Generator) Generate(ctx context.Context, summaries []llm.RepoSummary) e
 		return fmt.Errorf("분석된 저장소가 없습니다")
 	}
 
-	fmt.Fprintf(g.output, "\n브리핑 리포트 생성 중 (%d개 저장소)...\n\n", len(summaries))
+	slog.Info("브리핑 리포트 생성 중", "count", len(summaries))
+	fmt.Fprintln(g.output)
 
 	report, err := g.provider.Report(ctx, summaries)
 	if err != nil {
@@ -48,14 +50,10 @@ func (g *Generator) Generate(ctx context.Context, summaries []llm.RepoSummary) e
 
 // WriteToFile은 리포트를 파일에 저장합니다.
 func WriteToFile(path string, content string) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("파일 생성 실패: %w", err)
+	if err := os.WriteFile(path, []byte(content+"\n"), 0o644); err != nil {
+		return fmt.Errorf("파일 저장 실패: %w", err)
 	}
-	defer f.Close()
-
-	_, err = fmt.Fprintln(f, content)
-	return err
+	return nil
 }
 
 // LangStats는 언어별 저장소 수 통계를 반환합니다.
@@ -84,8 +82,8 @@ func PrintLangStats(w io.Writer, summaries []llm.RepoSummary) {
 	for lang, count := range stats {
 		sorted = append(sorted, langCount{lang, count})
 	}
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].count > sorted[j].count
+	slices.SortFunc(sorted, func(a, b langCount) int {
+		return b.count - a.count
 	})
 
 	fmt.Fprintln(w, "언어별 통계")

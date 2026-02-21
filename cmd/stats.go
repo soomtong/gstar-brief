@@ -3,7 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/dp/gstar-brief/internal/github"
@@ -55,12 +56,14 @@ func runStats(cmd *cobra.Command, _ []string) error {
 		stars int
 	}
 
-	var stats []stat
-	for lang, count := range langCount {
-		stats = append(stats, stat{lang, count, langStars[lang]})
+	// maps.Keys로 키 목록을 추출한 뒤 slices로 정렬
+	langs := slices.Collect(maps.Keys(langCount))
+	stats := make([]stat, 0, len(langs))
+	for _, lang := range langs {
+		stats = append(stats, stat{lang, langCount[lang], langStars[lang]})
 	}
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].count > stats[j].count
+	slices.SortFunc(stats, func(a, b stat) int {
+		return b.count - a.count
 	})
 
 	w := cmd.OutOrStdout()
@@ -78,7 +81,7 @@ func runStats(cmd *cobra.Command, _ []string) error {
 		if maxCount > 0 {
 			barLen = s.count * 20 / maxCount
 		}
-		bar := strings.Repeat("█", barLen)
+		bar := strings.Repeat("█", max(barLen, 1))
 		fmt.Fprintf(w, "%-20s  %5d  %10d  %s\n", s.lang, s.count, s.stars, bar)
 	}
 

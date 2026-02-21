@@ -17,11 +17,10 @@ type openAIProvider struct {
 }
 
 func newOpenAI() (Provider, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY 환경변수가 설정되지 않았습니다")
+	if err := requireEnvVars("OPENAI_API_KEY"); err != nil {
+		return nil, err
 	}
-	client := openai.NewClient(option.WithAPIKey(apiKey))
+	client := openai.NewClient(option.WithAPIKey(os.Getenv("OPENAI_API_KEY")))
 	return &openAIProvider{
 		client: &client,
 		model:  modelOrDefault(defaultOpenAIModel),

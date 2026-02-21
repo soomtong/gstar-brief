@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -69,6 +70,27 @@ func modelOrDefault(defaultModel string) string {
 	return defaultModel
 }
 
+// requireEnvVars는 필수 환경변수들이 설정되어 있는지 검사합니다.
+// 누락된 환경변수가 있으면 errors.Join으로 결합된 에러를 반환합니다.
+func requireEnvVars(vars ...string) error {
+	var errs []error
+	for _, v := range vars {
+		if os.Getenv(v) == "" {
+			errs = append(errs, fmt.Errorf("%s 환경변수가 설정되지 않았습니다", v))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+// langOrDefault는 *string 언어 필드가 nil이면 기본값 포인터를 반환합니다.
+// Go 1.26 new(expr): 기본값 문자열의 포인터를 한 줄로 표현합니다.
+func langOrDefault(lang *string) *string {
+	if lang != nil {
+		return lang
+	}
+	return new("미분류")
+}
+
 // analyzePrompt는 저장소 분석 프롬프트를 생성합니다.
 func analyzePrompt(repo RepoContext) string {
 	var sb strings.Builder
@@ -87,9 +109,9 @@ func analyzePrompt(repo RepoContext) string {
 	}
 
 	if repo.Readme != "" {
-		readme := repo.Readme
-		if len(readme) > 3000 {
-			readme = readme[:3000] + "\n...(생략)"
+		readme := repo.Readme[:min(len(repo.Readme), 3000)]
+		if len(repo.Readme) > 3000 {
+			readme += "\n...(생략)"
 		}
 		sb.WriteString(fmt.Sprintf("\n--- README ---\n%s\n", readme))
 	}
@@ -98,9 +120,9 @@ func analyzePrompt(repo RepoContext) string {
 		if i >= 2 {
 			break
 		}
-		code := snippet
-		if len(code) > 2000 {
-			code = code[:2000] + "\n...(생략)"
+		code := snippet[:min(len(snippet), 2000)]
+		if len(snippet) > 2000 {
+			code += "\n...(생략)"
 		}
 		sb.WriteString(fmt.Sprintf("\n--- 코드 ---\n%s\n", code))
 	}
@@ -122,10 +144,7 @@ func reportPrompt(summaries []RepoSummary) string {
 	sb.WriteString("--- 저장소 목록 ---\n\n")
 
 	for _, s := range summaries {
-		lang := "미분류"
-		if s.Language != nil {
-			lang = *s.Language
-		}
+		lang := *langOrDefault(s.Language)
 		sb.WriteString(fmt.Sprintf("### %s\n", s.FullName))
 		sb.WriteString(fmt.Sprintf("- 언어: %s | 스타: %d | 스타 날짜: %s\n", lang, s.Stars, s.StarredAt.Format("2006-01-02")))
 		sb.WriteString(fmt.Sprintf("- 요약: %s\n\n", s.Summary))

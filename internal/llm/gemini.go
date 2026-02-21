@@ -16,14 +16,13 @@ type geminiProvider struct {
 }
 
 func newGemini() (Provider, error) {
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY 환경변수가 설정되지 않았습니다")
+	if err := requireEnvVars("GEMINI_API_KEY"); err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
+		APIKey:  os.Getenv("GEMINI_API_KEY"),
 		Backend: genai.BackendGeminiAPI,
 	})
 	if err != nil {

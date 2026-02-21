@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/dp/gstar-brief/internal/github"
@@ -27,14 +28,14 @@ func New(gh *github.Client, provider llm.Provider) *Analyzer {
 
 // Run은 username의 스타 저장소를 수집하고 분석하여 요약 목록을 반환합니다.
 func (a *Analyzer) Run(ctx context.Context, username string, limit int) ([]llm.RepoSummary, error) {
-	fmt.Printf("GitHub 스타 저장소 수집 중 (@%s)...\n", username)
+	slog.Info("GitHub 스타 저장소 수집 중", "user", username)
 
 	repos, err := a.github.ListStarred(ctx, username, limit)
 	if err != nil {
 		return nil, fmt.Errorf("스타 저장소 수집 실패: %w", err)
 	}
 
-	fmt.Printf("총 %d개 저장소 분석 시작...\n", len(repos))
+	slog.Info("저장소 분석 시작", "count", len(repos))
 
 	type result struct {
 		idx     int
@@ -73,7 +74,7 @@ func (a *Analyzer) Run(ctx context.Context, username string, limit int) ([]llm.R
 					return
 				}
 
-				fmt.Printf("  [%d/%d] %s\n", idx+1, len(repos), repo.FullName)
+				slog.Info("저장소 분석 완료", "repo", repo.FullName, "idx", idx+1, "total", len(repos))
 
 				results <- result{
 					idx: idx,
@@ -105,7 +106,7 @@ func (a *Analyzer) Run(ctx context.Context, username string, limit int) ([]llm.R
 	summaries := make([]llm.RepoSummary, len(repos))
 	for r := range results {
 		if r.err != nil {
-			fmt.Printf("  경고: %v\n", r.err)
+			slog.Warn("저장소 분석 실패", "error", r.err)
 			continue
 		}
 		summaries[r.idx] = r.summary

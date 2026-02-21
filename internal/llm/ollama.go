@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -17,19 +18,17 @@ type ollamaProvider struct {
 }
 
 func newOllama() (Provider, error) {
-	model := os.Getenv("OLLAMA_MODEL")
-	if model == "" {
-		return nil, fmt.Errorf("OLLAMA_MODEL 환경변수가 설정되지 않았습니다")
+	if err := requireEnvVars("OLLAMA_MODEL"); err != nil {
+		return nil, err
 	}
+	model := os.Getenv("OLLAMA_MODEL")
 
 	baseURL := os.Getenv("OLLAMA_BASE_URL")
 	if baseURL == "" {
 		baseURL = defaultOllamaBaseURL
 	} else {
 		// OLLAMA_BASE_URL이 /v1 없이 설정된 경우 보정
-		if len(baseURL) > 0 && baseURL[len(baseURL)-1] != '/' {
-			baseURL += "/v1"
-		}
+		baseURL = strings.TrimRight(baseURL, "/") + "/v1"
 	}
 
 	client := openai.NewClient(

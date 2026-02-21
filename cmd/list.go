@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 
 	"github.com/dp/gstar-brief/internal/github"
 	"github.com/spf13/cobra"
@@ -41,12 +41,12 @@ func runList(cmd *cobra.Command, _ []string) error {
 
 	switch sortBy {
 	case "stars":
-		sort.Slice(repos, func(i, j int) bool {
-			return repos[i].StargazersCount > repos[j].StargazersCount
+		slices.SortFunc(repos, func(a, b github.Repo) int {
+			return b.StargazersCount - a.StargazersCount
 		})
 	case "date":
-		sort.Slice(repos, func(i, j int) bool {
-			return repos[i].StarredAt.After(repos[j].StarredAt)
+		slices.SortFunc(repos, func(a, b github.Repo) int {
+			return b.StarredAt.Compare(a.StarredAt)
 		})
 	default:
 		return fmt.Errorf("알 수 없는 정렬 기준: %q (stars | date)", sortBy)

@@ -20,9 +20,8 @@ type openRouterProvider struct {
 }
 
 func newOpenRouter() (Provider, error) {
-	apiKey := os.Getenv("OPENROUTER_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OPENROUTER_API_KEY 환경변수가 설정되지 않았습니다")
+	if err := requireEnvVars("OPENROUTER_API_KEY"); err != nil {
+		return nil, err
 	}
 
 	model := os.Getenv("OPENROUTER_MODEL")
@@ -31,7 +30,7 @@ func newOpenRouter() (Provider, error) {
 	}
 
 	client := openai.NewClient(
-		option.WithAPIKey(apiKey),
+		option.WithAPIKey(os.Getenv("OPENROUTER_API_KEY")),
 		option.WithBaseURL(openRouterBaseURL),
 		option.WithHeader("HTTP-Referer", "https://github.com/dp/gstar-brief"),
 		option.WithHeader("X-Title", "gstar-brief"),

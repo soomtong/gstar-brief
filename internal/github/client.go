@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"iter"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,46 +99,57 @@ func (c *Client) do(ctx context.Context, method, url string, headers map[string]
 	return resp, nil
 }
 
+// starredPages는 페이지 단위로 starred 아이템을 yield하는 이터레이터입니다.
+// 각 페이지의 아이템을 순서대로 yield하며, 에러 발생 시 중단됩니다.
+func (c *Client) starredPages(ctx context.Context, username string) iter.Seq2[starredItem, error] {
+	return func(yield func(starredItem, error) bool) {
+		for page := 1; ; page++ {
+			url := fmt.Sprintf("%s/users/%s/starred?per_page=%d&page=%d", baseURL, username, perPage, page)
+			resp, err := c.do(ctx, "GET", url, map[string]string{
+				"Accept": "application/vnd.github.star+json",
+			})
+			if err != nil {
+				yield(starredItem{}, err)
+				return
+			}
+
+			var items []starredItem
+			if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+				resp.Body.Close()
+				yield(starredItem{}, fmt.Errorf("응답 파싱 실패: %w", err))
+				return
+			}
+			resp.Body.Close()
+
+			for _, item := range items {
+				if !yield(item, nil) {
+					return
+				}
+			}
+
+			// 마지막 페이지면 종료
+			if len(items) < perPage {
+				return
+			}
+		}
+	}
+}
+
 // ListStarred는 유저의 스타 저장소 전체 목록을 반환합니다.
 func (c *Client) ListStarred(ctx context.Context, username string, limit int) ([]Repo, error) {
 	var repos []Repo
-	page := 1
 
-	for {
-		url := fmt.Sprintf("%s/users/%s/starred?per_page=%d&page=%d", baseURL, username, perPage, page)
-		resp, err := c.do(ctx, "GET", url, map[string]string{
-			"Accept": "application/vnd.github.star+json",
-		})
+	for item, err := range c.starredPages(ctx, username) {
 		if err != nil {
 			return nil, err
 		}
+		r := item.Repo
+		r.StarredAt = item.StarredAt
+		repos = append(repos, r)
 
-		var items []starredItem
-		if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
-			resp.Body.Close()
-			return nil, fmt.Errorf("응답 파싱 실패: %w", err)
-		}
-		resp.Body.Close()
-
-		if len(items) == 0 {
+		if limit > 0 && len(repos) >= limit {
 			break
 		}
-
-		for _, item := range items {
-			r := item.Repo
-			r.StarredAt = item.StarredAt
-			repos = append(repos, r)
-
-			if limit > 0 && len(repos) >= limit {
-				return repos, nil
-			}
-		}
-
-		// 다음 페이지 없으면 종료
-		if len(items) < perPage {
-			break
-		}
-		page++
 	}
 
 	return repos, nil
