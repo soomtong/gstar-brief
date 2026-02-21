@@ -53,30 +53,62 @@ gstar-brief report
 
 ## 설정
 
-### 환경변수
+설정 우선순위: **CLI 플래그 > `GSTAR_*` 환경변수 > 레거시 환경변수 > 설정 파일 > 기본값**
 
-| 변수 | 설명 | 필수 |
-|---|---|---|
-| `GITHUB_TOKEN` | GitHub Personal Access Token | 권장 |
-| `GITHUB_USER` | 분석할 GitHub 유저명 | 필수 |
-| `LLM_PROVIDER` | 사용할 LLM provider (`claude` / `openai` / `gemini` / `openrouter` / `ollama`) | 필수 |
-| `LLM_MODEL` | 모델 오버라이드 (미설정 시 provider 기본값 사용) | 선택 |
-| `ANTHROPIC_API_KEY` | Claude 사용 시 | 조건부 |
-| `OPENAI_API_KEY` | OpenAI 사용 시 | 조건부 |
-| `GEMINI_API_KEY` | Gemini 사용 시 | 조건부 |
-| `OPENROUTER_API_KEY` | OpenRouter 사용 시 | 조건부 |
-| `OPENROUTER_MODEL` | OpenRouter 모델 ID (기본: `openai/gpt-5-nano`) | 선택 |
-| `OLLAMA_BASE_URL` | Ollama 엔드포인트 (기본: `http://localhost:11434`) | 조건부 |
-
-### 예시
+### 빠른 시작 — 설정 파일
 
 ```bash
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
-export GITHUB_USER=myusername
-export LLM_PROVIDER=gemini
-export GEMINI_API_KEY=AIzaxxxxxxxxxxxxxxxxxx
+# 설정 파일 초기화
+gstar-brief init
+
+# 편집
+$EDITOR ~/.config/gstar-brief/config.toml
+```
+
+`~/.config/gstar-brief/config.toml`:
+
+```toml
+[github]
+token = "ghp_xxxxxxxxxxxx"
+user  = "myusername"
+
+[llm]
+provider   = "gemini"
+gemini_key = "AIzaxxxxxxxxxxxxxxxxxx"
+```
+
+### 환경변수
+
+`GSTAR_` 접두사 환경변수를 권장합니다. 레거시 변수(`GITHUB_TOKEN` 등)도 폴백으로 지원합니다.
+
+| 변수 | 설명 |
+|---|---|
+| `GSTAR_GITHUB_TOKEN` | GitHub Personal Access Token |
+| `GSTAR_GITHUB_USER` | 분석할 GitHub 유저명 |
+| `GSTAR_LLM_PROVIDER` | `claude` / `openai` / `gemini` / `openrouter` / `ollama` |
+| `GSTAR_LLM_MODEL` | 모델 오버라이드 |
+| `GSTAR_LLM_GEMINI_KEY` | Gemini API Key |
+| `GSTAR_LLM_ANTHROPIC_KEY` | Anthropic API Key |
+| `GSTAR_LLM_OPENAI_KEY` | OpenAI API Key |
+| `GSTAR_LLM_OPENROUTER_KEY` | OpenRouter API Key |
+| `GSTAR_LLM_OLLAMA_MODEL` | Ollama 모델명 |
+| `GSTAR_CONFIG_DIR` | 설정 디렉토리 경로 오버라이드 |
+
+### 예시 — 환경변수 방식
+
+```bash
+export GSTAR_GITHUB_USER=myusername
+export GSTAR_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+export GSTAR_LLM_PROVIDER=gemini
+export GSTAR_LLM_GEMINI_KEY=AIzaxxxxxxxxxxxxxxxxxx
 
 gstar-brief report
+```
+
+### 예시 — 특정 설정 파일 지정
+
+```bash
+gstar-brief --config ~/work/gstar.toml report
 ```
 
 ## LLM Provider
@@ -85,7 +117,7 @@ gstar-brief report
 |---|---|---|
 | `claude` | `claude-haiku-4-5` | Anthropic Claude API |
 | `openai` | `gpt-5-nano` | OpenAI API |
-| `gemini` | `gemini-2.0-flash` | Google Gemini API |
+| `gemini` | `gemini-2.5-flash-lite` | Google Gemini API |
 | `openrouter` | `openai/gpt-5-nano` | OpenAI 호환, 수백 개 모델 접근 가능 |
 | `ollama` | (직접 설정) | 로컬 실행 모델 |
 

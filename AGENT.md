@@ -180,7 +180,7 @@ type RepoSummary struct {
 ### Gemini (`internal/llm/gemini.go`)
 
 - SDK: `google.golang.org/genai`
-- 기본 모델: `gemini-2.0-flash`
+- 기본 모델: `gemini-2.5-flash-lite`
 - 인증: `GEMINI_API_KEY`
 - 엔드포인트: `generativelanguage.googleapis.com`
 
@@ -214,21 +214,62 @@ starred repos 수집 (GitHub API, 페이지네이션)
 종합 브리핑 리포트 출력 (stdout 또는 파일)
 ```
 
-## 환경변수
+## 설정 시스템
 
-| 변수 | 설명 | 필수 |
+### 우선순위 (높음 → 낮음)
+
+```
+1. CLI 플래그          --limit 10 --output report.md
+2. GSTAR_* 환경변수    GSTAR_GITHUB_USER=dp GSTAR_LLM_PROVIDER=gemini
+3. 레거시 환경변수     GITHUB_TOKEN, LLM_PROVIDER 등 (폴백)
+4. 설정 파일           ~/.config/gstar-brief/config.toml
+5. 기본값              ollama_base_url = "http://localhost:11434"
+```
+
+### 설정 파일
+
+- **경로**: `~/.config/gstar-brief/config.toml`
+- **포맷**: TOML
+- **생성**: `gstar-brief init`
+- **경로 오버라이드**: `GSTAR_CONFIG_DIR=/path/to/dir` 또는 `--config /path/to/config.toml`
+- `XDG_CONFIG_HOME` 환경변수 존중 (Linux/macOS 모두)
+
+```toml
+[github]
+token = "ghp_..."
+user  = "dp"
+
+[llm]
+provider      = "gemini"
+model         = ""           # 비워두면 provider 기본값 사용
+gemini_key    = "AIza..."
+```
+
+### 환경변수
+
+`GSTAR_` 접두사가 붙은 변수가 레거시 변수보다 우선합니다.
+
+| GSTAR_* 변수 | 레거시 변수 | 설명 |
 |---|---|---|
-| `GITHUB_TOKEN` | GitHub Personal Access Token | 권장 |
-| `GITHUB_USER` | 분석할 GitHub 유저명 | 필수 |
-| `LLM_PROVIDER` | `claude` / `openai` / `gemini` / `openrouter` / `ollama` | 필수 |
-| `LLM_MODEL` | provider 기본 모델 오버라이드 | 선택 |
-| `ANTHROPIC_API_KEY` | Claude 사용 시 | 조건부 |
-| `OPENAI_API_KEY` | OpenAI 사용 시 | 조건부 |
-| `GEMINI_API_KEY` | Gemini 사용 시 | 조건부 |
-| `OPENROUTER_API_KEY` | OpenRouter 사용 시 | 조건부 |
-| `OPENROUTER_MODEL` | OpenRouter 모델 ID (기본: `openai/gpt-5-nano`) | 선택 |
-| `OLLAMA_BASE_URL` | Ollama 엔드포인트 (기본: `http://localhost:11434`) | 조건부 |
-| `OLLAMA_MODEL` | Ollama 모델명 | 조건부 |
+| `GSTAR_GITHUB_TOKEN` | `GITHUB_TOKEN` | GitHub PAT | 
+| `GSTAR_GITHUB_USER` | `GITHUB_USER` | 분석할 GitHub 유저명 |
+| `GSTAR_LLM_PROVIDER` | `LLM_PROVIDER` | `claude` / `openai` / `gemini` / `openrouter` / `ollama` |
+| `GSTAR_LLM_MODEL` | `LLM_MODEL` | 모델 오버라이드 |
+| `GSTAR_LLM_ANTHROPIC_KEY` | `ANTHROPIC_API_KEY` | Claude 사용 시 |
+| `GSTAR_LLM_OPENAI_KEY` | `OPENAI_API_KEY` | OpenAI 사용 시 |
+| `GSTAR_LLM_GEMINI_KEY` | `GEMINI_API_KEY` | Gemini 사용 시 |
+| `GSTAR_LLM_OPENROUTER_KEY` | `OPENROUTER_API_KEY` | OpenRouter 사용 시 |
+| `GSTAR_LLM_OPENROUTER_MODEL` | `OPENROUTER_MODEL` | OpenRouter 모델 ID |
+| `GSTAR_LLM_OLLAMA_BASE_URL` | `OLLAMA_BASE_URL` | Ollama 엔드포인트 |
+| `GSTAR_LLM_OLLAMA_MODEL` | `OLLAMA_MODEL` | Ollama 모델명 |
+| `GSTAR_CONFIG_DIR` | — | 설정 디렉토리 경로 오버라이드 |
+
+### 구현 패턴 (`internal/config/config.go`)
+
+- `config.Init(cfgFile)` — cobra `OnInitialize`에서 호출
+- `config.Load()` — `Config` 구조체로 언마샬
+- `cfg.ApplyToEnv()` — SDK가 읽는 표준 환경변수에 설정값 적용
+- `config.DefaultTOML()` — `init` 커맨드용 템플릿 반환
 
 ## 빌드 및 테스트
 
