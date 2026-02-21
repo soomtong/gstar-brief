@@ -59,7 +59,7 @@ func initConfig() {
 
 	// 설정 파일 경로 출력 (디버그용)
 	if cf := viper.ConfigFileUsed(); cf != "" {
-		fmt.Fprintf(os.Stderr, "설정 파일: %s\n", cf)
+		fmt.Fprintf(os.Stderr, "설정 파일: %s\n\n", cf)
 	}
 
 	// 설정값을 SDK가 읽는 환경변수에 적용

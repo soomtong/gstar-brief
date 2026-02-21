@@ -18,23 +18,10 @@ go build -o gstar-brief .
 
 ## 사용법
 
-### 언어별 통계
-
-```bash
-gstar-brief stats
-```
-
 ### 저장소 목록 조회
 
 ```bash
-# 스타 카운트 순 정렬
-gstar-brief list --sort stars
-
-# 스타 마킹 시간 순 정렬
-gstar-brief list --sort date
-
-# 상위 N개만 출력
-gstar-brief list --sort stars --limit 20
+gstar-brief list
 ```
 
 ### LLM 브리핑 리포트 생성
@@ -86,14 +73,6 @@ gstar-brief report --offset 500 --limit 500 --output report_2.md
 
 # 1001~1500번째
 gstar-brief report --offset 1000 --limit 500 --output report_3.md
-```
-
-통계도 동일하게 분할 처리할 수 있습니다.
-
-```bash
-gstar-brief stats --offset 0    --limit 500
-gstar-brief stats --offset 500  --limit 500
-gstar-brief stats --offset 1000 --limit 500
 ```
 
 ## 설정

@@ -6,8 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"slices"
-	"strings"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/dp/gstar-brief/internal/llm"
@@ -87,42 +85,4 @@ func WriteToFile(path string, content string) error {
 		return fmt.Errorf("파일 저장 실패: %w", err)
 	}
 	return nil
-}
-
-// LangStats는 언어별 저장소 수 통계를 반환합니다.
-func LangStats(summaries []llm.RepoSummary) map[string]int {
-	stats := make(map[string]int)
-	for _, s := range summaries {
-		lang := "미분류"
-		if s.Language != nil && *s.Language != "" {
-			lang = *s.Language
-		}
-		stats[lang]++
-	}
-	return stats
-}
-
-// PrintLangStats는 언어별 통계를 테이블 형식으로 출력합니다.
-func PrintLangStats(w io.Writer, summaries []llm.RepoSummary) {
-	stats := LangStats(summaries)
-
-	type langCount struct {
-		lang  string
-		count int
-	}
-
-	var sorted []langCount
-	for lang, count := range stats {
-		sorted = append(sorted, langCount{lang, count})
-	}
-	slices.SortFunc(sorted, func(a, b langCount) int {
-		return b.count - a.count
-	})
-
-	fmt.Fprintln(w, "언어별 통계")
-	fmt.Fprintln(w, strings.Repeat("-", 30))
-	for _, lc := range sorted {
-		bar := strings.Repeat("█", lc.count)
-		fmt.Fprintf(w, "%-20s %3d  %s\n", lc.lang, lc.count, bar)
-	}
 }
