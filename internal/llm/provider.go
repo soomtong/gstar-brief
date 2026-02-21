@@ -141,6 +141,11 @@ func reportPrompt(summaries []RepoSummary) string {
 	sb.WriteString("1. 전체 요약 (주요 관심 분야, 기술 스택 트렌드)\n")
 	sb.WriteString("2. 언어/분야별 분류\n")
 	sb.WriteString("3. 특히 주목할 저장소 TOP 5 (이유 포함)\n\n")
+	sb.WriteString("Markdown 포맷 규칙 (반드시 준수):\n")
+	sb.WriteString("- 볼드(**텍스트**)는 저장소 이름, 언어명, 라이브러리명 등 고유명사에만 사용하세요.\n")
+	sb.WriteString("- 일반 설명 문장에는 볼드를 사용하지 마세요.\n")
+	sb.WriteString("- 이탤릭(*텍스트*)은 사용하지 마세요.\n")
+	sb.WriteString("- 헤딩(#, ##, ###)은 섹션 구분에만 사용하세요.\n\n")
 	sb.WriteString("--- 저장소 목록 ---\n\n")
 
 	for _, s := range summaries {
