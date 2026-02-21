@@ -51,7 +51,13 @@ func (g *Generator) Generate(ctx context.Context, summaries []llm.RepoSummary) e
 		return fmt.Errorf("분석된 저장소가 없습니다")
 	}
 
-	slog.Info("브리핑 리포트 생성 중", "count", len(summaries))
+	slog.Debug("브리핑 리포트 생성 중", "count", len(summaries))
+
+	if r, err := glamour.NewTermRenderer(glamour.WithStylePath("dark"), glamour.WithWordWrap(0)); err == nil {
+		if out, err := r.Render(fmt.Sprintf("---\n\n`%d`개 저장소를 바탕으로 **브리핑 리포트**를 생성하는 중...\n", len(summaries))); err == nil {
+			fmt.Fprint(os.Stderr, out)
+		}
+	}
 	fmt.Fprintln(g.output)
 
 	content, err := g.provider.Report(ctx, summaries)

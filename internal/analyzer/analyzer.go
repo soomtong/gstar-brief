@@ -4,13 +4,50 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/dp/gstar-brief/internal/github"
 	"github.com/dp/gstar-brief/internal/llm"
 )
 
 const workerCount = 3 // GitHub Rate Limit 고려한 동시 요청 수
+
+// statusPrinter는 glamour 렌더러와 출력 mutex를 보유합니다.
+type statusPrinter struct {
+	mu       sync.Mutex
+	renderer *glamour.TermRenderer
+}
+
+// newStatusPrinter는 터미널 쿼리 없이 고정 스타일로 렌더러를 생성합니다.
+func newStatusPrinter() *statusPrinter {
+	r, err := glamour.NewTermRenderer(
+		glamour.WithStylePath("dark"),
+		glamour.WithWordWrap(0),
+	)
+	if err != nil {
+		return &statusPrinter{}
+	}
+	return &statusPrinter{renderer: r}
+}
+
+// print는 마크다운을 렌더링하여 stderr에 출력합니다 (goroutine-safe).
+func (p *statusPrinter) print(md string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.renderer == nil {
+		fmt.Fprintln(os.Stderr, md)
+		return
+	}
+	out, err := p.renderer.Render(md)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, md)
+		return
+	}
+	fmt.Fprint(os.Stderr, out)
+}
 
 // Analyzer는 GitHub 저장소를 수집하고 LLM으로 분석합니다.
 type Analyzer struct {
@@ -30,14 +67,18 @@ func New(gh *github.Client, provider llm.Provider) *Analyzer {
 // offset: 건너뛸 아이템 수 (최신 순 기준)
 // limit:  수집할 최대 아이템 수 (0이면 무제한)
 func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) ([]llm.RepoSummary, error) {
-	slog.Info("GitHub 스타 저장소 수집 중", "user", username)
+	sp := newStatusPrinter()
+
+	slog.Debug("GitHub 스타 저장소 수집 중", "user", username)
+	sp.print(fmt.Sprintf("**@%s** 의 스타 저장소를 수집하는 중...", username))
 
 	repos, err := a.github.ListStarred(ctx, username, offset, limit)
 	if err != nil {
 		return nil, fmt.Errorf("스타 저장소 수집 실패: %w", err)
 	}
 
-	slog.Info("저장소 분석 시작", "count", len(repos))
+	slog.Debug("저장소 분석 시작", "count", len(repos))
+	sp.print(fmt.Sprintf("`%d`개 저장소 분석을 시작합니다.", len(repos)))
 
 	type result struct {
 		idx     int
@@ -76,7 +117,8 @@ func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) 
 					return
 				}
 
-				slog.Info("저장소 분석 완료", "repo", repo.FullName, "idx", idx+1, "total", len(repos))
+				slog.Debug("저장소 분석 완료", "repo", repo.FullName, "idx", idx+1, "total", len(repos))
+				sp.print(fmt.Sprintf("**[%d/%d]** `%s` 분석 완료", idx+1, len(repos), repo.FullName))
 
 				results <- result{
 					idx: idx,
@@ -109,6 +151,7 @@ func (a *Analyzer) Run(ctx context.Context, username string, offset, limit int) 
 	for r := range results {
 		if r.err != nil {
 			slog.Warn("저장소 분석 실패", "error", r.err)
+			sp.print(fmt.Sprintf("> **경고:** %s", r.err))
 			continue
 		}
 		summaries[r.idx] = r.summary
