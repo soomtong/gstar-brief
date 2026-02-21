@@ -64,7 +64,15 @@ time=2026-02-21T12:00:01 level=DEBUG msg="LLM API 응답" provider=claude model=
 스타 수가 많아 GitHub API Rate Limit에 걸리는 경우 `--offset`과 `--limit`을 조합하여 구간별로 처리합니다.
 GitHub API는 최신 순(스타 마킹 날짜 내림차순)으로 반환하므로 offset은 최신 별 기준으로 건너뜁니다.
 
+`--limit` 기본값은 `100`이며, 전체를 처리하려면 `--limit 0`을 명시합니다.
+
 ```bash
+# 기본: 가장 최근에 스타한 100개 처리
+gstar-brief report
+
+# 전체 처리
+gstar-brief report --limit 0
+
 # 1~500번째 (가장 최근에 스타한 저장소)
 gstar-brief report --offset 0   --limit 500 --output report_1.md
 

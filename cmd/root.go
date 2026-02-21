@@ -35,7 +35,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		fmt.Sprintf("설정 파일 경로 (기본: %s)", config.DefaultPath()))
 	rootCmd.PersistentFlags().StringP("output", "o", "", "출력 파일 경로 (기본: stdout)")
-	rootCmd.PersistentFlags().IntP("limit", "n", 0, "처리할 저장소 최대 수 (기본: 전체)")
+	rootCmd.PersistentFlags().IntP("limit", "n", 100, "처리할 저장소 최대 수 (기본: 100, 전체: 0)")
 	rootCmd.PersistentFlags().Int("offset", 0, "건너뛸 저장소 수 (기본: 0, 최신 순 기준)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "LLM API 호출 상세 로그 출력")
 
