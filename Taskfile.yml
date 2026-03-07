@@ -1,0 +1,65 @@
+version: '3'
+
+vars:
+  APP: gstar-brief
+  TOTAL: 3272
+  BATCH: 5
+
+tasks:
+  default:
+    desc: 사용 가능한 태스크 목록 표시
+    cmds:
+      - task --list
+
+  build:
+    desc: 바이너리 빌드
+    cmds:
+      - go build -v -o ./{{.APP}} .
+    sources:
+      - ./**/*.go
+      - go.mod
+      - go.sum
+    generates:
+      - ./{{.APP}}
+
+  run:
+    desc: 리포트 생성 (stdout 출력)
+    deps: [build]
+    cmds:
+      - ./{{.APP}} report {{.CLI_ARGS}}
+
+  analysis:
+    desc: 전체 분석 배치 실행 (output/YYMMDD/ 에 저장)
+    deps: [build]
+    vars:
+      DATEDIR: output/$(date '+%y%m%d')
+      FILES:
+        sh: echo $((({{.TOTAL}} + {{.BATCH}} - 1) / {{.BATCH}}))
+    cmds:
+      - mkdir -p {{.DATEDIR}}
+      - echo "총 저장소:{{.TOTAL}}, 배치 크기:{{.BATCH}}, 생성 파일 수:{{.FILES}}"
+      - echo "출력 디렉토리:{{.DATEDIR}}"
+      - |
+        for i in $(seq 0 $(({{.FILES}} - 1))); do
+          offset=$((i * {{.BATCH}}))
+          file=$(printf "{{.DATEDIR}}/%04d.md" $((i + 1)))
+          if [ -f "$file" ]; then
+            echo "[SKIP] $file"
+            continue
+          fi
+          echo "[$(date '+%H:%M:%S')] $(printf '%04d' $((i + 1)))/{{.FILES}} — offset=$offset → $file"
+          ./{{.APP}} report --offset "$offset" --limit {{.BATCH}} -o "$file" 2>&1 | grep -v '^$'
+          sleep 60
+        done
+      - echo "완료!"
+
+  clean:
+    desc: 빌드 산출물 삭제
+    cmds:
+      - rm -f ./{{.APP}}
+
+  init:
+    desc: 설정 파일 초기화
+    deps: [build]
+    cmds:
+      - ./{{.APP}} init
