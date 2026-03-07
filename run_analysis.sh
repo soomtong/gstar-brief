@@ -4,13 +4,15 @@ TOTAL=3272
 BATCH=5
 FILES=$(((TOTAL + BATCH - 1) / BATCH))
 
-mkdir -p output
+DATEDIR="output/$(date '+%y%m%d')"
+mkdir -p "$DATEDIR"
 
 echo "총 저장소: $TOTAL, 배치 크기: $BATCH, 생성 파일 수: $FILES"
+echo "출력 디렉토리: $DATEDIR"
 
 for i in $(seq 0 $((FILES - 1))); do
 	offset=$((i * BATCH))
-	file=$(printf "output/%04d.md" $((i + 1)))
+	file=$(printf "%s/%04d.md" "$DATEDIR" $((i + 1)))
 
 	if [ -f "$file" ]; then
 		echo "[SKIP] $file"
